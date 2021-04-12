@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1,minimum-scale=1,user-scalable=no" />
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>转盘</title>
+	<style type="text/css">
+		#wrapper {
+			width: 20rem;
+			height: 20rem;
+			margin: 6rem auto;
+			position: relative;
+		}
+		#circle {
+			width: 100%;
+			height: 100%;
+			border: 1px solid purple;
+			border-radius: 50%;
+		}
+		.separator {
+			position: absolute;
+			top: 50%;
+			left: 0;
+			width: 10rem;
+			height: 1px;
+			background-color: #800080;
+			text-indent: 3rem;
+			font-size: 1rem;
+			line-height: 4rem;
+			transform-origin: right center;
+		}
+		.separator:nth-of-type(1) {
+			transform: rotate(0);
+		}
+		.separator:nth-of-type(2) {
+			transform: rotate(45deg);
+		}
+		.separator:nth-of-type(3) {
+			transform: rotate(90deg);
+		}
+		.separator:nth-of-type(4) {
+			transform: rotate(135deg);
+		}
+		.separator:nth-of-type(5) {
+			transform: rotate(180deg);
+		}
+		.separator:nth-of-type(6) {
+			transform: rotate(225deg);
+		}
+		.separator:nth-of-type(7) {
+			transform: rotate(270deg);
+		}
+		.separator:nth-of-type(8) {
+			transform: rotate(315deg);
+		}
+		
+		#pointer {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: 5rem;
+			height: 3px;
+			margin-top: -1px;
+			transform-origin: left center;
+			transform: rotate(180deg);
+			background-color: darkred;
+		}
+		#pointer #arrow {
+			position: absolute;
+			right: -12px;
+			top: -4.5px;
+			width: 0;
+			height: 0;
+			border-left: 6px solid #8B0000;
+			border-right: 6px solid transparent;
+			border-top: 6px solid transparent;
+			border-bottom: 6px solid transparent;
+		}
+		.box {
+			width: 20rem;
+			height: 2rem;
+			border: 1px dashed grey;
+			margin: 50px auto;
+			text-align:center;
+			line-height:2rem;
+			user-select:none;
+		}
+		.tip {
+			font-size: 1rem;
+			color: rgb(47,47,47);
+			
+		}
+		.mask {
+			display: none;
+			width:100%;
+			height:100%;
+			position:fixed;
+			top:0;
+			left:0;
+			overflow:hidden;
+			z-index:999;
+			background-color:rgba(0,0,0,.6);
+			justify-content:center;
+			align-items:center;
+		}
+		.mask .info {
+			width:11rem;
+			height:12rem;
+			background-color:#fff;
+			border-radius:15px;
+			display:flex;display:flex;
+			justify-content:center;
+			align-items:center;
+			flex-direction: column;
+			position:relative;
+		}
+		.btn {
+			position:absolute;
+			bottom:0;
+			left:0;
+			width:100%;
+			height:2.5rem;
+			border:none;
+			border-top:1px solid grey;
+			border-radius: 0px 0px 15px 15px;
+			outline:none;
+			font-size: 1rem;
+			-webkit-tap-highlight-color:transparent;
+		}
+	</style>
+</head>
+<body>
+	<h2 style="text-align: center;">点击转盘开始转动</h2>
+	<div id="wrapper">
+		<div id="circle">
+			<div class="separator">1</div>
+			<div class="separator">2</div>
+			<div class="separator">3</div>
+			<div class="separator">4</div>
+			<div class="separator">5</div>
+			<div class="separator">6</div>
+			<div class="separator">7</div>
+			<div class="separator">8</div>
+		</div>
+		<div id="pointer">
+			<div id="arrow"></div>
+		</div>
+	</div>
+	<div class="box">还有<span class="tip">5</span>次机会</div>
+	
+	<div class="mask">
+		<div class="info">
+			<img src="" width="60" height="60" class="pic" />
+			<p style="text-align:center">您的选择是<span class="sel"></span></p>
+			<button class="btn">确定</button>
+		</div>
+	</div>
+	<script src="http://pv.sohu.com/cityjson?ie=utf-8"></script>
+	<script type="text/javascript">
+		
+		
+		const ua = navigator.userAgent
+		const kernel = {
+			IE: ua.indexOf('Trident') > -1, 			// IE内核
+		  	Opera: ua.indexOf('Presto') > -1, 			//opera内核
+		  	WebKit: ua.indexOf('AppleWebKit') > -1, 	//苹果、谷歌内核
+		  	Firefox: ua.indexOf('Gecko') > -1 && ua.indexOf('KHTML') == -1, //火狐内核
+		  	weixin: ua.indexOf('MicroMessenger') > -1, 	//是否微信 
+		  	qq: ua.match(/\sQQ/i) == " qq" 				//是否QQ
+		}
+		function findKey (value, compare = (a, b) => a === b) {
+			return Object.keys(kernel).find(k => compare(kernel[k], value))
+		}
+		function $(name) {
+			return document.querySelector(name);
+		}
+		
+		$(".btn").onclick = function(){
+			$('.mask').style.display = 'none';
+		}
+		
+		var opts = ["火锅","麻辣烫","汤面","日料","烧烤","小吃","西餐","中餐"];
+		let oOpts = document.getElementsByClassName("separator");
+		for (let i = 0; i < oOpts.length; i++) {
+			oOpts[i].innerText = opts[i];
+		}
+		
+		var speed = 3600;
+		var waitTime = 0, finalSel = "", picIndex = 0;
+		var timer;
+		var nums = 5;
+		
+		let oCircle = $("#circle");
+		oCircle.addEventListener("mousedown", () => {
+			let randDeg = Math.random()*10000 + 3000;
+			if (nums > 0) {
+				roll(oCircle, randDeg);
+			} else {
+				alert("很遗憾~机会已用完");
+			}
+		})
+		
+		function roll(obj, deg) {
+			clearTimeout(timer);
+			if (obj != null) {
+				obj.style.transform = "rotate(-"+ deg +"deg)";
+				obj.style.transition = "all " + deg / speed + "s";
+				waitTime = deg / speed;
+				// console.log(deg % 360);
+				for (let i = 0; i < opts.length; i++) {
+					// 根据角度判断最后指向的内容
+					if (deg % 360 >= i * 45 && deg % 360 <= (i + 1) * 45) {
+						picIndex = (i + 1) % 8;
+						finalSel = opts[picIndex];
+						//已知结果的情况下先加载文字和图片
+						$(".sel").innerText = finalSel;
+						$(".pic").src = './img/' + (picIndex + 1) + '.png';
+					}
+				}
+				// 定时器后展示提示信息
+				timer = setTimeout(function() {
+					// 展示遮罩层
+					$(".mask").style.display = "flex";
+					// 将数据存入后台
+					var postData = {
+						"finalSel": finalSel,
+						"deviceInfo": findKey(true),
+						"cip": returnCitySN["cip"]
+					};
+					// 转成post需要的字符串.
+					postData = (function(obj){ 
+					    var str = "";
+					    for(var prop in obj){
+					        str += prop + "=" + obj[prop] + "&"
+					    }
+					    return str;
+					})(postData);
+					ajaxPost("/MyAPI/turnable", postData, function (res) {
+						res = JSON.parse(res)
+						console.log(Object.keys(res),Object.values(res))
+						nums -= 1;
+						$('.tip').innerText = nums;
+					});
+				}, waitTime * 1000 + 500);
+			}
+		}
+		// 封装ajax POST方法
+		function ajaxPost(url, data, callback) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('POST', url, true);
+			xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+			xhr.send(data);
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+				 callback(xhr.responseText);
+			   }
+			}
+		}
+	</script>
+</body>
+</html>
